@@ -1,2 +1,0 @@
-file,n_points,slope,slope_err,intercept,intercept_err,output
-result,1000000,0.004208381140329032,3.039784999807115e-07,1.2227883682229232e-11,1.7550245449592324e-12,graphs/result.png
