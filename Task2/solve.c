@@ -2,6 +2,8 @@
 #include <stddef.h>
 #include <stdio.h>
 
+// #define LOG
+
 // CholeskyBanachiewicz decomposition
 void Decompose(const size_t dim, const double A[dim][dim], double L[dim][dim]) {
     for (size_t i = 0; i < dim; ++i) {
@@ -53,28 +55,20 @@ void BackSubstitution(const size_t dim, const double L_transposed[dim][dim], con
         x[i] = (y[i] - sum) / L_transposed[i][i];
     }
 }
-    
 
-int main () {
-    const size_t dim = 3;
-
-    double A[dim][dim] = {{4, 12, -16}, 
-                    {12, 37, -43},
-                    {-16, -43, 98}};
-
+void Solve(const size_t dim, const double A[dim][dim], double x[dim], const double b[dim]) {
     double L[dim][dim] = {};
     Decompose(dim, A, L);
 
     double L_transposed[dim][dim] = {};
     Transpose(dim, L, L_transposed);
 
-    double b[dim] = {1, 2 ,3};
     double y[dim] = {};
     ForwardSubstitution(dim, L, b, y);
 
-    double x[dim] = {};
     BackSubstitution(dim, L_transposed, y, x);
 
+#ifdef LOG
     printf("L:\n");
     for (size_t i = 0 ; i < dim ; ++i) {
         for (size_t j = 0 ; j < dim ; ++j) {
@@ -102,6 +96,5 @@ int main () {
         printf("%lf ", x[i]);
     }
     printf("\n");
-
-    return 0;
+#endif
 }
