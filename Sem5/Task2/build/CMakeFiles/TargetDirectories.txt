@@ -1,0 +1,3 @@
+/Users/bulatmotygullin/Documents/ComputationalMath/Task2/build/CMakeFiles/tests.dir
+/Users/bulatmotygullin/Documents/ComputationalMath/Task2/build/CMakeFiles/edit_cache.dir
+/Users/bulatmotygullin/Documents/ComputationalMath/Task2/build/CMakeFiles/rebuild_cache.dir
