@@ -18,6 +18,10 @@ constexpr double kT  = 1.0;
 constexpr int kTimeFactor = 20;
 constexpr std::array<int, 4> kGridSizes = {50, 100, 200, 400};
 constexpr std::array<double, 3> kLambdas = {-3.0, 0.0, 17.0};
+constexpr double kMinusJumpTime = 0.78;
+constexpr double kPlusJumpTime = 0.96;
+constexpr double kMinusJumpAmplitude = 0.8;
+constexpr double kPlusJumpAmplitude = -1.0;
 
 enum class Scheme
 {
@@ -36,6 +40,9 @@ struct SystemSolution
     std::vector<std::array<double, 3>> exact;
     double max_error = 0.0;
 };
+
+double smooth_inflow_value(int index, double t);
+double inflow_value(int index, double t);
 
 double characteristic_initial(int index, double x)
 {
@@ -62,21 +69,57 @@ double characteristic_exact(int index, double x, double t)
         return characteristic_initial(index, x);
     }
 
-    return characteristic_initial(index, x - kLambdas[index] * t);
+    const double lambda = kLambdas[index];
+    const double x0 = x - lambda * t;
+
+    if (lambda > 0.0)
+    {
+        if (x0 >= 0.0)
+        {
+            return characteristic_initial(index, x0);
+        }
+
+        const double t_boundary = t - x / lambda;
+        return inflow_value(index, t_boundary);
+    }
+
+    if (x0 <= 1.0)
+    {
+        return characteristic_initial(index, x0);
+    }
+
+    const double t_boundary = t - (1.0 - x) / (-lambda);
+    return inflow_value(index, t_boundary);
+}
+
+double smooth_inflow_value(int index, double t)
+{
+    if (kLambdas[index] > 0.0)
+    {
+        return characteristic_initial(index, -kLambdas[index] * t);
+    }
+    if (kLambdas[index] < 0.0)
+    {
+        return characteristic_initial(index, 1.0 - kLambdas[index] * t);
+    }
+
+    return 0.0;
 }
 
 double inflow_value(int index, double t)
 {
-    if (kLambdas[index] > 0.0)
+    const double smooth = smooth_inflow_value(index, t);
+
+    if (index == 0)
     {
-        return characteristic_exact(index, 0.0, t);
+        return (t < kMinusJumpTime) ? smooth : smooth + kMinusJumpAmplitude;
     }
-    if (kLambdas[index] < 0.0)
+    if (index == 2)
     {
-        return characteristic_exact(index, 1.0, t);
+        return (t < kPlusJumpTime) ? smooth : smooth + kPlusJumpAmplitude;
     }
 
-    return 0.0;
+    return smooth;
 }
 
 std::array<double, 3> reconstruct_u(double w_minus, double w_zero, double w_plus)
@@ -362,6 +405,9 @@ void save_summary(const std::filesystem::path& path,
     out << "Task 3: linear hyperbolic system, variant 17\n";
     out << "Courant numbers: lambda = {-3, 0, 17}, tau = h / 20.\n";
     out << "Therefore r_- = -0.15, r_0 = 0, r_+ = 0.85.\n\n";
+    out << "Discontinuous inflow conditions:\n";
+    out << "w_-(1,t) = smooth_w_-(1,t) for t < 0.78, smooth_w_-(1,t) + 0.8 for t >= 0.78.\n";
+    out << "w_+(0,t) = smooth_w_+(0,t) for t < 0.96, smooth_w_+(0,t) - 1.0 for t >= 0.96.\n\n";
 
     const auto write_table = [&out](const char* title,
                                     const std::vector<SystemSolution>& solutions)

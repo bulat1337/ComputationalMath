@@ -23,23 +23,23 @@ text { font-family: Arial, Helvetica, sans-serif; fill: #222; }
 <line class="grid" x1="926.00" y1="58" x2="926.00" y2="484"/>
 <text class="tick" x="926.00" y="506" text-anchor="middle">400.0</text>
 <line class="grid" x1="92" y1="484.00" x2="926" y2="484.00"/>
-<text class="tick" x="82" y="488.00" text-anchor="end">1.56e-05</text>
+<text class="tick" x="82" y="488.00" text-anchor="end">0.9624</text>
 <line class="grid" x1="92" y1="398.80" x2="926" y2="398.80"/>
-<text class="tick" x="82" y="402.80" text-anchor="end">1.41e-04</text>
+<text class="tick" x="82" y="402.80" text-anchor="end">1.043</text>
 <line class="grid" x1="92" y1="313.60" x2="926" y2="313.60"/>
-<text class="tick" x="82" y="317.60" text-anchor="end">0.001268</text>
+<text class="tick" x="82" y="317.60" text-anchor="end">1.13</text>
 <line class="grid" x1="92" y1="228.40" x2="926" y2="228.40"/>
-<text class="tick" x="82" y="232.40" text-anchor="end">0.01145</text>
+<text class="tick" x="82" y="232.40" text-anchor="end">1.225</text>
 <line class="grid" x1="92" y1="143.20" x2="926" y2="143.20"/>
-<text class="tick" x="82" y="147.20" text-anchor="end">0.1034</text>
+<text class="tick" x="82" y="147.20" text-anchor="end">1.327</text>
 <line class="grid" x1="92" y1="58.00" x2="926" y2="58.00"/>
-<text class="tick" x="82" y="62.00" text-anchor="end">0.9329</text>
+<text class="tick" x="82" y="62.00" text-anchor="end">1.438</text>
 <line class="axis" x1="92" y1="484" x2="926" y2="484"/>
 <line class="axis" x1="92" y1="58" x2="92" y2="484"/>
 <text class="axis-label" x="509.0" y="536" text-anchor="middle">M</text>
 <text class="axis-label" transform="translate(24,271.0) rotate(-90)" text-anchor="middle">max error</text>
-<polyline points="92.00,80.82 211.14,99.61 449.43,122.21 926.00,146.93" fill="none" stroke="#1f77b4" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-<polyline points="92.00,300.16 211.14,353.82 449.43,407.50 926.00,461.18" fill="none" stroke="#d62728" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="92.00,80.82 211.14,262.08 449.43,416.68 926.00,461.18" fill="none" stroke="#1f77b4" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="92.00,439.70 211.14,366.78 449.43,313.26 926.00,273.35" fill="none" stroke="#d62728" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
 <line x1="736" y1="72" x2="760" y2="72" stroke="#1f77b4" stroke-width="2.6"/>
 <text class="legend" x="768" y="76" text-anchor="start">Lax</text>
 <line x1="736" y1="94" x2="760" y2="94" stroke="#d62728" stroke-width="2.6"/>
