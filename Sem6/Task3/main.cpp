@@ -1,458 +1,467 @@
+#include <algorithm>
+#include <array>
 #include <cmath>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <limits>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
-struct Params
+namespace
 {
-    double Du;      // коэффициент диффузии для u
-    double Dv;      // коэффициент диффузии для v
-    double alpha;   // параметр alpha в h(s)
-    double beta;    // параметр beta  в h(s)
-    double gamma;   // параметр gamma
+
+constexpr double kPi = 3.141592653589793238462643383279502884;
+constexpr double kT  = 1.0;
+constexpr int kTimeFactor = 20;
+constexpr std::array<int, 4> kGridSizes = {50, 100, 200, 400};
+constexpr std::array<double, 3> kLambdas = {-3.0, 0.0, 17.0};
+
+enum class Scheme
+{
+    Lax,
+    Box
 };
 
-struct IntegrationResult
+struct SystemSolution
 {
-    // конечные значения основной системы в x=1
-    double u = 0.0;
-    double up = 0.0;
-    double v = 0.0;
-    double vp = 0.0;
-
-    // матрица Якоби невязки по пристрелочным параметрам
-    // J = [ dPhi1/dp1  dPhi1/dp2
-    //       dPhi2/dp1  dPhi2/dp2 ]
-    double J11 = 0.0;
-    double J12 = 0.0;
-    double J21 = 0.0;
-    double J22 = 0.0;
-
-    // невязки
-    double Phi1 = 0.0;
-    double Phi2 = 0.0;
+    int M = 0;
+    int N = 0;
+    double h = 0.0;
+    double tau = 0.0;
+    std::vector<double> x;
+    std::vector<std::array<double, 3>> u;
+    std::vector<std::array<double, 3>> exact;
+    double max_error = 0.0;
 };
 
-// z(x) = gamma / (1 + gamma) - x
-double z_func(double x, const Params& p)
+double characteristic_initial(int index, double x)
 {
-    return p.gamma / (1.0 + p.gamma) - x;
-}
+    const double s = std::sin(kPi * x);
+    const double c = std::cos(kPi * x);
 
-// h(s) = s / (alpha + s + beta * s^2)
-double h_func(double s, const Params& p)
-{
-    const double denom = p.alpha + s + p.beta * s * s;
-    return s / denom;
-}
-
-// h'(s) = (alpha - beta * s^2) / (alpha + s + beta*s^2)^2
-double dh_func(double s, const Params& p)
-{
-    const double denom = p.alpha + s + p.beta * s * s;
-    return (p.alpha - p.beta * s * s) / (denom * denom);
-}
-
-// f(u,v) = u * h(z(x) - u - v)
-double f_func(double x, double u, double v, const Params& p)
-{
-    const double s = z_func(x, p) - u - v;
-    return u * h_func(s, p);
-}
-
-// g(u,v) = v * h(z(x) - u - v)
-double g_func(double x, double u, double v, const Params& p)
-{
-    const double s = z_func(x, p) - u - v;
-    return v * h_func(s, p);
-}
-
-// Частные производные f_u, f_v, g_u, g_v
-void calc_partials(double x, double u, double v, const Params& p,
-                   double& fu, double& fv, double& gu, double& gv)
-{
-    const double s  = z_func(x, p) - u - v;
-    const double h  = h_func(s, p);
-    const double dh = dh_func(s, p);
-
-    // f(u,v) = u * h(s), s = z - u - v
-    // df/du = h(s) + u * h'(s) * ds/du = h(s) - u*h'(s)
-    // df/dv = u * h'(s) * ds/dv = -u*h'(s)
-    fu = h - u * dh;
-    fv = -u * dh;
-
-    // g(u,v) = v * h(s)
-    // dg/du = -v*h'(s)
-    // dg/dv = h(s) - v*h'(s)
-    gu = -v * dh;
-    gv = h - v * dh;
-}
-
-// Правая часть объединённой системы:
-// основная система + 2 вариационные системы
-//
-// Вектор Y имеет 12 компонент:
-//
-// 0: u
-// 1: u'
-// 2: v
-// 3: v'
-//
-// Вариации по p1 = u(0):
-// 4:  du/dp1
-// 5:  d(u')/dp1
-// 6:  dv/dp1
-// 7:  d(v')/dp1
-//
-// Вариации по p2 = v(0):
-// 8:  du/dp2
-// 9:  d(u')/dp2
-// 10: dv/dp2
-// 11: d(v')/dp2
-std::vector<double> rhs(double x, const std::vector<double>& Y, const Params& p)
-{
-    std::vector<double> dY(12, 0.0);
-
-    const double u  = Y[0];
-    const double up = Y[1];
-    const double v  = Y[2];
-    const double vp = Y[3];
-
-    dY[0] = up;
-    dY[1] = -(1.0 / p.Du) * f_func(x, u, v, p);
-    dY[2] = vp;
-    dY[3] = -(1.0 / p.Dv) * g_func(x, u, v, p);
-
-    double fu, fv, gu, gv;
-    calc_partials(x, u, v, p, fu, fv, gu, gv);
-
-    // -------- Вариации по p1 --------
+    switch (index)
     {
-        const double du  = Y[4];
-        const double dup = Y[5];
-        const double dv  = Y[6];
-        const double dvp = Y[7];
+        case 0:
+            return 0.5 + (8.0 / 9.0) * s + (5.0 / 18.0) * c;
+        case 1:
+            return -(1.0 / 9.0) * s - (2.0 / 9.0) * c;
+        case 2:
+            return 0.5 + (1.0 / 3.0) * s + (1.0 / 6.0) * c;
+        default:
+            throw std::runtime_error("invalid characteristic index");
+    }
+}
 
-        dY[4] = dup;
-        dY[5] = -(1.0 / p.Du) * (fu * du + fv * dv);
-        dY[6] = dvp;
-        dY[7] = -(1.0 / p.Dv) * (gu * du + gv * dv);
+double characteristic_exact(int index, double x, double t)
+{
+    if (index == 1)
+    {
+        return characteristic_initial(index, x);
     }
 
-    // -------- Вариации по p2 --------
-    {
-        const double du  = Y[8];
-        const double dup = Y[9];
-        const double dv  = Y[10];
-        const double dvp = Y[11];
-
-        dY[8]  = dup;
-        dY[9]  = -(1.0 / p.Du) * (fu * du + fv * dv);
-        dY[10] = dvp;
-        dY[11] = -(1.0 / p.Dv) * (gu * du + gv * dv);
-    }
-
-    return dY;
+    return characteristic_initial(index, x - kLambdas[index] * t);
 }
 
-void rk4_step(double& x, std::vector<double>& Y, double h, const Params& p)
+double inflow_value(int index, double t)
 {
-    const std::vector<double> k1 = rhs(x, Y, p);
-
-    std::vector<double> Ytmp(12);
-    for (int i = 0; i < 12; ++i)
-        Ytmp[i] = Y[i] + 0.5 * h * k1[i];
-    const std::vector<double> k2 = rhs(x + 0.5 * h, Ytmp, p);
-
-    for (int i = 0; i < 12; ++i)
-        Ytmp[i] = Y[i] + 0.5 * h * k2[i];
-    const std::vector<double> k3 = rhs(x + 0.5 * h, Ytmp, p);
-
-    for (int i = 0; i < 12; ++i)
-        Ytmp[i] = Y[i] + h * k3[i];
-    const std::vector<double> k4 = rhs(x + h, Ytmp, p);
-
-    for (int i = 0; i < 12; ++i)
+    if (kLambdas[index] > 0.0)
     {
-        Y[i] += (h / 6.0) * (k1[i] + 2.0 * k2[i] + 2.0 * k3[i] + k4[i]);
+        return characteristic_exact(index, 0.0, t);
+    }
+    if (kLambdas[index] < 0.0)
+    {
+        return characteristic_exact(index, 1.0, t);
     }
 
-    x += h;
+    return 0.0;
 }
 
-IntegrationResult integrate_system(double p1, double p2,
-                                   const Params& par,
-                                   int N,
-                                   bool save_profile = false,
-                                   const std::string& filename = "")
+std::array<double, 3> reconstruct_u(double w_minus, double w_zero, double w_plus)
 {
-    // Начальные данные в x=0:
-    // u(0)=p1, u'(0)=0
-    // v(0)=p2, v'(0)=0
-    //
-    // Для вариаций:
-    //
-    // По p1:
-    // d(u(0))/dp1 = 1, d(u'(0))/dp1 = 0
-    // d(v(0))/dp1 = 0, d(v'(0))/dp1 = 0
-    //
-    // По p2:
-    // d(u(0))/dp2 = 0, d(u'(0))/dp2 = 0
-    // d(v(0))/dp2 = 1, d(v'(0))/dp2 = 0
+    return {
+        2.0 * w_minus + w_zero - 2.0 * w_plus,
+        -w_minus - 5.0 * w_zero + w_plus,
+        w_minus + 2.0 * w_zero + w_plus
+    };
+}
 
-    std::vector<double> Y(12, 0.0);
-    Y[0] = p1;
-    Y[1] = 0.0;
-    Y[2] = p2;
-    Y[3] = 0.0;
+std::array<double, 3> exact_u(double x, double t)
+{
+    return reconstruct_u(
+        characteristic_exact(0, x, t),
+        characteristic_exact(1, x, t),
+        characteristic_exact(2, x, t)
+    );
+}
 
-    Y[4] = 1.0;
-    Y[5] = 0.0;
-    Y[6] = 0.0;
-    Y[7] = 0.0;
+std::vector<double> solve_scalar_lax(int index, int M, int N)
+{
+    std::vector<double> current(M + 1, 0.0);
+    std::vector<double> next(M + 1, 0.0);
 
-    Y[8]  = 0.0;
-    Y[9]  = 0.0;
-    Y[10] = 1.0;
-    Y[11] = 0.0;
+    const double h = 1.0 / static_cast<double>(M);
+    const double tau = kT / static_cast<double>(N);
+    const double lambda = kLambdas[index];
+    const double r = lambda * tau / h;
 
-    double x = 0.0;
-    const double h = 1.0 / static_cast<double>(N);
-
-    std::ofstream fout;
-    if (save_profile)
+    for (int m = 0; m <= M; ++m)
     {
-        fout.open(filename);
-        fout << "x,u,up,v,vp\n";
-        fout << std::setprecision(16)
-             << x << "," << Y[0] << "," << Y[1] << "," << Y[2] << "," << Y[3] << "\n";
+        current[m] = characteristic_initial(index, m * h);
     }
 
-    for (int i = 0; i < N; ++i)
+    if (std::abs(lambda) < 1e-14)
     {
-        rk4_step(x, Y, h, par);
+        return current;
+    }
 
-        if (save_profile)
+    for (int n = 0; n < N; ++n)
+    {
+        const double t_next = (n + 1) * tau;
+
+        for (int m = 1; m < M; ++m)
         {
-            fout << std::setprecision(16)
-                 << x << "," << Y[0] << "," << Y[1] << "," << Y[2] << "," << Y[3] << "\n";
+            next[m] = 0.5 * (current[m + 1] + current[m - 1])
+                    - 0.5 * r * (current[m + 1] - current[m - 1]);
+        }
+
+        if (lambda > 0.0)
+        {
+            next[0] = inflow_value(index, t_next);
+            next[M] = next[M - 1];
+        }
+        else
+        {
+            next[M] = inflow_value(index, t_next);
+            next[0] = next[1];
+        }
+
+        current.swap(next);
+    }
+
+    return current;
+}
+
+std::vector<double> solve_scalar_box(int index, int M, int N)
+{
+    std::vector<double> current(M + 1, 0.0);
+    std::vector<double> next(M + 1, 0.0);
+
+    const double h = 1.0 / static_cast<double>(M);
+    const double tau = kT / static_cast<double>(N);
+    const double lambda = kLambdas[index];
+    const double r = lambda * tau / h;
+
+    for (int m = 0; m <= M; ++m)
+    {
+        current[m] = characteristic_initial(index, m * h);
+    }
+
+    if (std::abs(lambda) < 1e-14)
+    {
+        return current;
+    }
+
+    if (std::abs(1.0 + r) < 1e-14 || std::abs(1.0 - r) < 1e-14)
+    {
+        throw std::runtime_error("degenerate Courant number for box scheme");
+    }
+
+    for (int n = 0; n < N; ++n)
+    {
+        const double t_next = (n + 1) * tau;
+
+        if (lambda > 0.0)
+        {
+            next[0] = inflow_value(index, t_next);
+
+            for (int m = 0; m < M; ++m)
+            {
+                next[m + 1] = ((1.0 - r) * current[m + 1]
+                             + (1.0 + r) * current[m]
+                             - (1.0 - r) * next[m]) / (1.0 + r);
+            }
+        }
+        else
+        {
+            next[M] = inflow_value(index, t_next);
+
+            for (int m = M - 1; m >= 0; --m)
+            {
+                next[m] = ((1.0 - r) * current[m + 1]
+                         + (1.0 + r) * current[m]
+                         - (1.0 + r) * next[m + 1]) / (1.0 - r);
+            }
+        }
+
+        current.swap(next);
+    }
+
+    return current;
+}
+
+SystemSolution solve_system(Scheme scheme, int M)
+{
+    SystemSolution solution;
+    solution.M = M;
+    solution.N = kTimeFactor * M;
+    solution.h = 1.0 / static_cast<double>(M);
+    solution.tau = kT / static_cast<double>(solution.N);
+    solution.x.resize(M + 1);
+    solution.u.resize(M + 1);
+    solution.exact.resize(M + 1);
+
+    std::array<std::vector<double>, 3> w;
+    for (int index = 0; index < 3; ++index)
+    {
+        if (scheme == Scheme::Lax)
+        {
+            w[index] = solve_scalar_lax(index, M, solution.N);
+        }
+        else
+        {
+            w[index] = solve_scalar_box(index, M, solution.N);
         }
     }
 
-    IntegrationResult res;
-    res.u  = Y[0];
-    res.up = Y[1];
-    res.v  = Y[2];
-    res.vp = Y[3];
-
-    res.Phi1 = res.up + par.gamma * res.u;
-    res.Phi2 = res.vp + par.gamma * res.v;
-
-    // Якобиан:
-    // Phi1 = u'(1) + gamma*u(1)
-    // dPhi1/dp1 = d(u'(1))/dp1 + gamma*d(u(1))/dp1
-    // dPhi1/dp2 = d(u'(1))/dp2 + gamma*d(u(1))/dp2
-    //
-    // Phi2 = v'(1) + gamma*v(1)
-    // dPhi2/dp1 = d(v'(1))/dp1 + gamma*d(v(1))/dp1
-    // dPhi2/dp2 = d(v'(1))/dp2 + gamma*d(v(1))/dp2
-
-    res.J11 = Y[5]  + par.gamma * Y[4];
-    res.J12 = Y[9]  + par.gamma * Y[8];
-    res.J21 = Y[7]  + par.gamma * Y[6];
-    res.J22 = Y[11] + par.gamma * Y[10];
-
-    return res;
-}
-
-// Решение 2x2 системы:
-// [a b] [x] = [r1]
-// [c d] [y]   [r2]
-bool solve_2x2(double a, double b, double c, double d,
-               double r1, double r2,
-               double& x, double& y)
-{
-    const double det = a * d - b * c;
-
-    if (std::abs(det) < 1e-14)
-        return false;
-
-    x = ( r1 * d - b * r2) / det;
-    y = ( a * r2 - r1 * c) / det;
-    return true;
-}
-
-bool newton_shooting(double& p1, double& p2,
-                     const Params& par,
-                     int N,
-                     int max_iter,
-                     double tol,
-                     bool verbose = true)
-{
-    for (int iter = 0; iter < max_iter; ++iter)
+    double max_error = 0.0;
+    for (int m = 0; m <= M; ++m)
     {
-        IntegrationResult res = integrate_system(p1, p2, par, N, false);
+        const double x = m * solution.h;
+        solution.x[m] = x;
+        solution.u[m] = reconstruct_u(w[0][m], w[1][m], w[2][m]);
+        solution.exact[m] = exact_u(x, kT);
 
-        const double normPhi = std::sqrt(res.Phi1 * res.Phi1 + res.Phi2 * res.Phi2);
-
-        std::cout << "res.Phi1 " <<  res.Phi1 << std::endl;
-        std::cout << "res.Phi2 " <<  res.Phi2 << std::endl;
-
-        if (verbose)
+        for (int comp = 0; comp < 3; ++comp)
         {
-            std::cout << "  Newton iter = " << iter
-                      << "  p1 = " << p1
-                      << "  p2 = " << p2
-                      << "  |Phi| = " << normPhi
-                      << "\n";
-        }
-
-        if (normPhi < tol)
-            return true;
-
-        // Решаем J * delta = -Phi
-        double dp1 = 0.0, dp2 = 0.0;
-        const bool ok = solve_2x2(
-            res.J11, res.J12,
-            res.J21, res.J22,
-            -res.Phi1, -res.Phi2,
-            dp1, dp2
-        );
-
-        if (!ok)
-        {
-            std::cerr << "  Ошибка: матрица Якоби вырождена или почти вырождена.\n";
-            return false;
-        }
-
-        p1 += dp1;
-        p2 += dp2;
-
-        // Дополнительная защита от разлёта
-        if (!std::isfinite(p1) || !std::isfinite(p2))
-        {
-            std::cerr << "  Ошибка: пристрелочные параметры стали нечисловыми.\n";
-            return false;
+            max_error = std::max(
+                max_error,
+                std::abs(solution.u[m][comp] - solution.exact[m][comp])
+            );
         }
     }
 
-    return false;
+    solution.max_error = max_error;
+    return solution;
 }
 
-void save_solution_profile(double p1, double p2,
-                           const Params& par,
-                           int N,
-                           const std::string& filename)
+double max_difference_between_grids(const SystemSolution& coarse,
+                                    const SystemSolution& fine)
 {
-    (void)integrate_system(p1, p2, par, N, true, filename);
+    if (coarse.M <= 0 || fine.M % coarse.M != 0)
+    {
+        throw std::runtime_error("incompatible grids for convergence estimate");
+    }
+
+    const int ratio = fine.M / coarse.M;
+    double diff = 0.0;
+
+    for (int m = 0; m <= coarse.M; ++m)
+    {
+        const auto& uc = coarse.u[m];
+        const auto& uf = fine.u[m * ratio];
+        for (int comp = 0; comp < 3; ++comp)
+        {
+            diff = std::max(diff, std::abs(uc[comp] - uf[comp]));
+        }
+    }
+
+    return diff;
+}
+
+double safe_order(double coarse_error, double fine_error)
+{
+    if (coarse_error <= 0.0 || fine_error <= 0.0)
+    {
+        return std::numeric_limits<double>::quiet_NaN();
+    }
+
+    return std::log(coarse_error / fine_error) / std::log(2.0);
+}
+
+std::string scheme_name(Scheme scheme)
+{
+    switch (scheme)
+    {
+        case Scheme::Lax:
+            return "lax";
+        case Scheme::Box:
+            return "box";
+    }
+
+    return "unknown";
+}
+
+void save_final_profile(const std::filesystem::path& path,
+                        const SystemSolution& lax,
+                        const SystemSolution& box)
+{
+    std::ofstream out(path);
+    out << "x,"
+        << "lax_u1,lax_u2,lax_u3,"
+        << "box_u1,box_u2,box_u3,"
+        << "exact_u1,exact_u2,exact_u3\n";
+    out << std::setprecision(16);
+
+    for (int m = 0; m <= lax.M; ++m)
+    {
+        out << lax.x[m] << ","
+            << lax.u[m][0] << "," << lax.u[m][1] << "," << lax.u[m][2] << ","
+            << box.u[m][0] << "," << box.u[m][1] << "," << box.u[m][2] << ","
+            << lax.exact[m][0] << "," << lax.exact[m][1] << "," << lax.exact[m][2]
+            << "\n";
+    }
+}
+
+void save_convergence_csv(const std::filesystem::path& path,
+                          const std::vector<SystemSolution>& lax_solutions,
+                          const std::vector<SystemSolution>& box_solutions)
+{
+    std::ofstream out(path);
+    out << "scheme,M,N,h,tau,error_max,error_ratio_to_prev,order_from_exact\n";
+    out << std::setprecision(16);
+
+    const auto write_rows = [&out](Scheme scheme,
+                                   const std::vector<SystemSolution>& solutions)
+    {
+        double prev_error = std::numeric_limits<double>::quiet_NaN();
+        for (const auto& sol : solutions)
+        {
+            const double ratio = std::isnan(prev_error)
+                               ? std::numeric_limits<double>::quiet_NaN()
+                               : prev_error / sol.max_error;
+            const double order = std::isnan(prev_error)
+                               ? std::numeric_limits<double>::quiet_NaN()
+                               : safe_order(prev_error, sol.max_error);
+
+            out << scheme_name(scheme) << ","
+                << sol.M << ","
+                << sol.N << ","
+                << sol.h << ","
+                << sol.tau << ","
+                << sol.max_error << ","
+                << ratio << ","
+                << order << "\n";
+
+            prev_error = sol.max_error;
+        }
+    };
+
+    write_rows(Scheme::Lax, lax_solutions);
+    write_rows(Scheme::Box, box_solutions);
+}
+
+void save_summary(const std::filesystem::path& path,
+                  const std::vector<SystemSolution>& lax_solutions,
+                  const std::vector<SystemSolution>& box_solutions)
+{
+    std::ofstream out(path);
+    out << std::fixed << std::setprecision(8);
+    out << "Task 3: linear hyperbolic system, variant 17\n";
+    out << "Courant numbers: lambda = {-3, 0, 17}, tau = h / 20.\n";
+    out << "Therefore r_- = -0.15, r_0 = 0, r_+ = 0.85.\n\n";
+
+    const auto write_table = [&out](const char* title,
+                                    const std::vector<SystemSolution>& solutions)
+    {
+        out << title << "\n";
+        out << "M\tN\tmax_error\torder_exact\n";
+
+        double prev_error = std::numeric_limits<double>::quiet_NaN();
+        for (const auto& sol : solutions)
+        {
+            const double order = std::isnan(prev_error)
+                               ? std::numeric_limits<double>::quiet_NaN()
+                               : safe_order(prev_error, sol.max_error);
+
+            out << sol.M << "\t"
+                << sol.N << "\t"
+                << sol.max_error << "\t";
+
+            if (std::isnan(order))
+            {
+                out << "-";
+            }
+            else
+            {
+                out << order;
+            }
+            out << "\n";
+
+            prev_error = sol.max_error;
+        }
+
+        out << "\n";
+    };
+
+    write_table("Lax scheme", lax_solutions);
+    write_table("Box scheme", box_solutions);
+
+    out << "A posteriori orders from three nested grids\n";
+    out << "scheme\t(M,2M,4M)\tdiff_h_h2\tdiff_h2_h4\torder\n";
+
+    const auto write_apost = [&out](const char* title,
+                                    const std::vector<SystemSolution>& solutions)
+    {
+        for (std::size_t i = 0; i + 2 < solutions.size(); ++i)
+        {
+            const double d1 = max_difference_between_grids(solutions[i], solutions[i + 1]);
+            const double d2 = max_difference_between_grids(solutions[i + 1], solutions[i + 2]);
+            const double p = safe_order(d1, d2);
+
+            out << title << "\t("
+                << solutions[i].M << ","
+                << solutions[i + 1].M << ","
+                << solutions[i + 2].M << ")\t"
+                << d1 << "\t"
+                << d2 << "\t"
+                << p << "\n";
+        }
+    };
+
+    write_apost("lax", lax_solutions);
+    write_apost("box", box_solutions);
+}
+
 }
 
 int main()
 {
-    std::cout << std::fixed << std::setprecision(10);
-
-    Params par;
-    par.Du    = 0.01;
-    par.Dv    = 0.05;
-    par.alpha = 0.2;
-    par.beta  = 0.3;
-    par.gamma = 0.2;
-
-    const int N = 4000;
-
-    const int max_newton_iter = 1000;
-    const double tol = 1e-6;
-
-    double p1 = 0.1;
-    double p2 = 0.2;
-
-    std::cout << "=== Решение для одного значения gamma ===\n";
-    std::cout << "gamma = " << par.gamma << "\n";
-
-    bool ok = newton_shooting(p1, p2, par, N, max_newton_iter, tol, true);
-
-    if (!ok)
+    try
     {
-        std::cerr << "Не удалось найти решение методом Ньютона.\n";
-        return 1;
-    }
+        const std::filesystem::path output_dir =
+            "Sem6/Task3/results";
+        std::filesystem::create_directories(output_dir);
 
-    IntegrationResult res = integrate_system(p1, p2, par, N, false);
+        std::vector<SystemSolution> lax_solutions;
+        std::vector<SystemSolution> box_solutions;
+        lax_solutions.reserve(kGridSizes.size());
+        box_solutions.reserve(kGridSizes.size());
 
-    std::cout << "\nНайденные пристрелочные параметры:\n";
-    std::cout << "u(0) = " << p1 << "\n";
-    std::cout << "v(0) = " << p2 << "\n";
-
-    std::cout << "\nЗначения на правом конце:\n";
-    std::cout << "u(1)  = " << res.u  << "\n";
-    std::cout << "u'(1) = " << res.up << "\n";
-    std::cout << "v(1)  = " << res.v  << "\n";
-    std::cout << "v'(1) = " << res.vp << "\n";
-
-    std::cout << "\nПроверка граничных условий справа:\n";
-    std::cout << "u'(1) + gamma*u(1) = " << res.Phi1 << "\n";
-    std::cout << "v'(1) + gamma*v(1) = " << res.Phi2 << "\n";
-
-    // Сохраняем профиль решения
-    save_solution_profile(p1, p2, par, N, "solution_single_gamma.csv");
-    std::cout << "\nПрофиль решения сохранён в solution_single_gamma.csv\n";
-
-    // меняем gamma по сетке и используем предыдущее найденное
-    // решение как начальное приближение для следующего gamma.
-    std::cout << "\n=== Исследование по gamma ===\n";
-
-    std::ofstream branch("branch.csv");
-    branch << "gamma,u0,v0,u1,v1,phi1,phi2\n";
-
-    double gamma_min = 0.05;
-    double gamma_max = 1.00;
-    int gamma_steps = 20;
-
-    double cont_p1 = p1;
-    double cont_p2 = p2;
-
-    for (int k = 0; k <= gamma_steps; ++k)
-    {
-        const double gamma =
-            gamma_min + (gamma_max - gamma_min) * static_cast<double>(k) / gamma_steps;
-
-        par.gamma = gamma;
-
-        std::cout << "\n--- gamma = " << gamma << " ---\n";
-
-        bool local_ok = newton_shooting(cont_p1, cont_p2, par, N, max_newton_iter, tol, false);
-
-        if (!local_ok)
+        for (const int M : kGridSizes)
         {
-            std::cout << "  Решение не найдено для gamma = " << gamma << "\n";
-            branch << std::setprecision(16)
-                   << gamma << ",nan,nan,nan,nan,nan,nan\n";
-            continue;
+            lax_solutions.push_back(solve_system(Scheme::Lax, M));
+            box_solutions.push_back(solve_system(Scheme::Box, M));
         }
 
-        IntegrationResult rr = integrate_system(cont_p1, cont_p2, par, N, false);
+        save_convergence_csv(output_dir / "convergence.csv", lax_solutions, box_solutions);
+        save_summary(output_dir / "summary.txt", lax_solutions, box_solutions);
+        save_final_profile(output_dir / "final_profile_M400.csv",
+                           lax_solutions.back(),
+                           box_solutions.back());
 
-        std::cout << "  u(0) = " << cont_p1
-                  << "  v(0) = " << cont_p2
-                  << "  u(1) = " << rr.u
-                  << "  v(1) = " << rr.v
-                  << "  |Phi| = " << std::sqrt(rr.Phi1 * rr.Phi1 + rr.Phi2 * rr.Phi2)
-                  << "\n";
-
-        branch << std::setprecision(16)
-               << gamma << ","
-               << cont_p1 << ","
-               << cont_p2 << ","
-               << rr.u << ","
-               << rr.v << ","
-               << rr.Phi1 << ","
-               << rr.Phi2 << "\n";
+        std::cout << std::fixed << std::setprecision(8);
+        std::cout << "Results written to " << output_dir << "\n";
+        std::cout << "Final max error, Lax  (M=400): " << lax_solutions.back().max_error << "\n";
+        std::cout << "Final max error, Box  (M=400): " << box_solutions.back().max_error << "\n";
     }
-
-    branch.close();
-    std::cout << "\nДанные ветви решения сохранены в branch.csv\n";
+    catch (const std::exception& ex)
+    {
+        std::cerr << "Error: " << ex.what() << "\n";
+        return 1;
+    }
 
     return 0;
 }

@@ -1,0 +1,24 @@
+Task 3: linear hyperbolic system, variant 17
+Courant numbers: lambda = {-3, 0, 17}, tau = h / 20.
+Therefore r_- = -0.15, r_0 = 0, r_+ = 0.85.
+
+Lax scheme
+M	N	max_error	order_exact
+50	1000	0.51748222	-
+100	2000	0.31858303	0.69983987
+200	4000	0.17773286	0.84195897
+400	8000	0.09386070	0.92111726
+
+Box scheme
+M	N	max_error	order_exact
+50	1000	0.00179474	-
+100	2000	0.00044893	1.99919825
+200	4000	0.00011225	1.99979953
+400	8000	0.00002806	1.99994988
+
+A posteriori orders from three nested grids
+scheme	(M,2M,4M)	diff_h_h2	diff_h2_h4	order
+lax	(50,100,200)	0.20743271	0.14272161	0.53943965
+lax	(100,200,400)	0.14272161	0.08418296	0.76160371
+box	(50,100,200)	0.00134580	0.00033668	1.99899774
+box	(100,200,400)	0.00033668	0.00008419	1.99974940

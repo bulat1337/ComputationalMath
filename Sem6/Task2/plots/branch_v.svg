@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="560" viewBox="0 0 960 560">
+<style>
+text { font-family: Arial, Helvetica, sans-serif; fill: #222; }
+.title { font-size: 20px; font-weight: 700; }
+.axis-label { font-size: 14px; }
+.tick { font-size: 12px; fill: #555; }
+.grid { stroke: #e3e3e3; stroke-width: 1; }
+.axis { stroke: #333; stroke-width: 1.4; }
+.legend { font-size: 13px; }
+</style>
+<rect width="100%" height="100%" fill="white"/>
+<text class="title" x="480.0" y="30" text-anchor="middle">v values along gamma branch</text>
+<line class="grid" x1="92.00" y1="58" x2="92.00" y2="484"/>
+<text class="tick" x="92.00" y="506" text-anchor="middle">-0.95</text>
+<line class="grid" x1="258.80" y1="58" x2="258.80" y2="484"/>
+<text class="tick" x="258.80" y="506" text-anchor="middle">-0.86</text>
+<line class="grid" x1="425.60" y1="58" x2="425.60" y2="484"/>
+<text class="tick" x="425.60" y="506" text-anchor="middle">-0.77</text>
+<line class="grid" x1="592.40" y1="58" x2="592.40" y2="484"/>
+<text class="tick" x="592.40" y="506" text-anchor="middle">-0.68</text>
+<line class="grid" x1="759.20" y1="58" x2="759.20" y2="484"/>
+<text class="tick" x="759.20" y="506" text-anchor="middle">-0.59</text>
+<line class="grid" x1="926.00" y1="58" x2="926.00" y2="484"/>
+<text class="tick" x="926.00" y="506" text-anchor="middle">-0.5</text>
+<line class="grid" x1="92" y1="484.00" x2="926" y2="484.00"/>
+<text class="tick" x="82" y="488.00" text-anchor="end">39.46</text>
+<line class="grid" x1="92" y1="398.80" x2="926" y2="398.80"/>
+<text class="tick" x="82" y="402.80" text-anchor="end">73.33</text>
+<line class="grid" x1="92" y1="313.60" x2="926" y2="313.60"/>
+<text class="tick" x="82" y="317.60" text-anchor="end">107.2</text>
+<line class="grid" x1="92" y1="228.40" x2="926" y2="228.40"/>
+<text class="tick" x="82" y="232.40" text-anchor="end">141.1</text>
+<line class="grid" x1="92" y1="143.20" x2="926" y2="143.20"/>
+<text class="tick" x="82" y="147.20" text-anchor="end">174.9</text>
+<line class="grid" x1="92" y1="58.00" x2="926" y2="58.00"/>
+<text class="tick" x="82" y="62.00" text-anchor="end">208.8</text>
+<line class="axis" x1="92" y1="484" x2="926" y2="484"/>
+<line class="axis" x1="92" y1="58" x2="92" y2="484"/>
+<text class="axis-label" x="509.0" y="536" text-anchor="middle">gamma</text>
+<text class="axis-label" transform="translate(24,271.0) rotate(-90)" text-anchor="middle">v</text>
+<polyline points="92.00,461.18 175.40,439.62 258.80,422.04 342.20,404.30 425.60,385.28 509.00,364.32 592.40,340.85 675.80,314.25 759.20,283.72 842.60,248.25 926.00,206.49" fill="none" stroke="#1f77b4" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="92.00,353.43 175.40,321.96 258.80,300.89 342.20,281.42 425.60,261.40 509.00,239.81 592.40,215.92 675.80,189.03 759.20,158.30 842.60,122.69 926.00,80.82" fill="none" stroke="#d62728" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="776" y1="72" x2="800" y2="72" stroke="#1f77b4" stroke-width="2.6"/>
+<text class="legend" x="808" y="76" text-anchor="start">v(0)</text>
+<line x1="776" y1="94" x2="800" y2="94" stroke="#d62728" stroke-width="2.6"/>
+<text class="legend" x="808" y="98" text-anchor="start">v(1)</text>
+</svg>
