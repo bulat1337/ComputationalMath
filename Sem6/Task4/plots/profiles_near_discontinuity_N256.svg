@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="560" viewBox="0 0 960 560">
+<style>
+text { font-family: Arial, Helvetica, sans-serif; fill: #222; }
+.title { font-size: 20px; font-weight: 700; }
+.axis-label { font-size: 14px; }
+.tick { font-size: 12px; fill: #555; }
+.grid { stroke: #e3e3e3; stroke-width: 1; }
+.axis { stroke: #333; stroke-width: 1.4; }
+.legend { font-size: 13px; }
+</style>
+<rect width="100%" height="100%" fill="white"/>
+<text class="title" x="480.0" y="30" text-anchor="middle">Profiles near boundary discontinuity at (0, 0)</text>
+<line class="grid" x1="92.00" y1="58" x2="92.00" y2="484"/>
+<text class="tick" x="92.00" y="506" text-anchor="middle">0</text>
+<line class="grid" x1="258.80" y1="58" x2="258.80" y2="484"/>
+<text class="tick" x="258.80" y="506" text-anchor="middle">0.02344</text>
+<line class="grid" x1="425.60" y1="58" x2="425.60" y2="484"/>
+<text class="tick" x="425.60" y="506" text-anchor="middle">0.04688</text>
+<line class="grid" x1="592.40" y1="58" x2="592.40" y2="484"/>
+<text class="tick" x="592.40" y="506" text-anchor="middle">0.07031</text>
+<line class="grid" x1="759.20" y1="58" x2="759.20" y2="484"/>
+<text class="tick" x="759.20" y="506" text-anchor="middle">0.09375</text>
+<line class="grid" x1="926.00" y1="58" x2="926.00" y2="484"/>
+<text class="tick" x="926.00" y="506" text-anchor="middle">0.1172</text>
+<line class="grid" x1="92" y1="484.00" x2="926" y2="484.00"/>
+<text class="tick" x="82" y="488.00" text-anchor="end">-0.05998</text>
+<line class="grid" x1="92" y1="398.80" x2="926" y2="398.80"/>
+<text class="tick" x="82" y="402.80" text-anchor="end">0.164</text>
+<line class="grid" x1="92" y1="313.60" x2="926" y2="313.60"/>
+<text class="tick" x="82" y="317.60" text-anchor="end">0.388</text>
+<line class="grid" x1="92" y1="228.40" x2="926" y2="228.40"/>
+<text class="tick" x="82" y="232.40" text-anchor="end">0.612</text>
+<line class="grid" x1="92" y1="143.20" x2="926" y2="143.20"/>
+<text class="tick" x="82" y="147.20" text-anchor="end">0.836</text>
+<line class="grid" x1="92" y1="58.00" x2="926" y2="58.00"/>
+<text class="tick" x="82" y="62.00" text-anchor="end">1.06</text>
+<line class="axis" x1="92" y1="484" x2="926" y2="484"/>
+<line class="axis" x1="92" y1="58" x2="92" y2="484"/>
+<text class="axis-label" x="509.0" y="536" text-anchor="middle">x</text>
+<text class="axis-label" transform="translate(24,271.0) rotate(-90)" text-anchor="middle">u(x, y)</text>
+<polyline points="92.00,271.00 119.80,80.82 147.60,80.84 175.40,80.87 203.20,80.91 231.00,80.96 258.80,81.02 286.60,81.10 314.40,81.19 342.20,81.29 370.00,81.40 397.80,81.52 425.60,81.65 453.40,81.80 481.20,81.95 509.00,82.12 536.80,82.30 564.60,82.49 592.40,82.70 620.20,82.91 648.00,83.14 675.80,83.38 703.60,83.62 731.40,83.89 759.20,84.16 787.00,84.44 814.80,84.74 842.60,85.05 870.40,85.37 898.20,85.70 926.00,86.04" fill="none" stroke="#1f77b4" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="92.00,461.18 119.80,270.96 147.60,192.93 175.40,158.64 203.20,140.07 231.00,128.57 258.80,120.80 286.60,115.22 314.40,111.03 342.20,107.79 370.00,105.21 397.80,103.13 425.60,101.42 453.40,100.00 481.20,98.81 509.00,97.81 536.80,96.97 564.60,96.25 592.40,95.64 620.20,95.13 648.00,94.70 675.80,94.35 703.60,94.06 731.40,93.82 759.20,93.64 787.00,93.50 814.80,93.41 842.60,93.35 870.40,93.34 898.20,93.35 926.00,93.40" fill="none" stroke="#d62728" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="92.00,461.16 119.80,348.90 147.60,270.84 175.40,222.99 203.20,192.87 231.00,172.73 258.80,158.51 286.60,148.01 314.40,139.97 342.20,133.65 370.00,128.56 397.80,124.39 425.60,120.91 453.40,117.99 481.20,115.50 509.00,113.36 536.80,111.51 564.60,109.91 592.40,108.51 620.20,107.28 648.00,106.21 675.80,105.27 703.60,104.44 731.40,103.72 759.20,103.08 787.00,102.53 814.80,102.05 842.60,101.64 870.40,101.28 898.20,100.99 926.00,100.74" fill="none" stroke="#2ca02c" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="92.00,461.13 119.80,383.12 147.60,318.56 175.40,270.68 203.20,236.26 231.00,211.26 258.80,192.65 286.60,178.42 314.40,167.26 342.20,158.32 370.00,151.02 397.80,144.97 425.60,139.88 453.40,135.55 481.20,131.84 509.00,128.63 536.80,125.83 564.60,123.37 592.40,121.21 620.20,119.30 648.00,117.60 675.80,116.08 703.60,114.74 731.40,113.53 759.20,112.45 787.00,111.49 814.80,110.63 842.60,109.87 870.40,109.19 898.20,108.58 926.00,108.05" fill="none" stroke="#ff7f0e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="716" y1="72" x2="740" y2="72" stroke="#1f77b4" stroke-width="2.6"/>
+<text class="legend" x="748" y="76" text-anchor="start">y = 0</text>
+<line x1="716" y1="94" x2="740" y2="94" stroke="#d62728" stroke-width="2.6"/>
+<text class="legend" x="748" y="98" text-anchor="start">y = 1h = 0.003906</text>
+<line x1="716" y1="116" x2="740" y2="116" stroke="#2ca02c" stroke-width="2.6"/>
+<text class="legend" x="748" y="120" text-anchor="start">y = 2h = 0.007812</text>
+<line x1="716" y1="138" x2="740" y2="138" stroke="#ff7f0e" stroke-width="2.6"/>
+<text class="legend" x="748" y="142" text-anchor="start">y = 3h = 0.01172</text>
+</svg>

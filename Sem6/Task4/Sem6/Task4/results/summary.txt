@@ -1,0 +1,22 @@
+Task 4: Poisson Dirichlet problem in the unit square.
+Equation: u_xx + u_yy = -2.
+Nine-point Laplace stencil:
+(4 axis neighbours + diagonal neighbours - 20 u_ij) / (6 h^2).
+The algebraic system is written as B u = b, where
+B = 20 u_ij - 4 axis neighbours - diagonal neighbours.
+Stopping criterion: max |Delta_h u - f| <= 1e-6.
+At the inconsistent corner (0,0), the average of the two boundary values is used in the discrete stencil.
+
+method	N	unknowns	iterations	parameters	residual_inf	error_bound_l2
+chebyshev	8	49	45	8	0.00000079	0.00000012
+adi	8	49	17	7	0.00000058	0.00000008
+chebyshev	16	225	93	16	0.00000100	0.00000027
+adi	16	225	22	8	0.00000052	0.00000017
+chebyshev	32	961	208	32	0.00000072	0.00000031
+adi	32	961	35	9	0.00000026	0.00000010
+chebyshev	64	3969	421	64	0.00000067	0.00000053
+adi	64	3969	49	10	0.00000058	0.00000030
+chebyshev	128	16129	938	128	0.00000091	0.00000126
+adi	128	16129	65	11	0.00000063	0.00000046
+chebyshev	256	65025	1865	256	0.00000084	0.00000235
+adi	256	65025	73	12	0.00000073	0.00000103
